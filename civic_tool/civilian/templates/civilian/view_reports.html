@@ -1,0 +1,172 @@
+{% extends 'civilian/base.html' %}
+{% block content %}
+<nav class="breadcrumb">
+    <a href="#">Home</a>
+    <span>›</span>
+    <span style="color: #0b1220; font-weight: 600;">View Reports</span>
+</nav>
+<h2 class="header">Your Reported Issues</h2>
+<p class="muted">Below is a list of issues you have reported.</p>
+
+{% if request.user.is_authenticated %}
+<div style="font-size:12px;color:#6b7280;margin-top:6px;">Total: {{ reports|length }}</div>
+{% if reports and reports.exists %}
+<div style="margin-top:16px;overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <thead>
+            <tr style="background:#f9fafb;">
+                <th style="padding:12px 16px;text-align:left;font-size:13px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">Title</th>
+                <th style="padding:12px 16px;text-align:left;font-size:13px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">Category</th>
+                <th style="padding:12px 16px;text-align:left;font-size:13px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">Status</th>
+                <th style="padding:12px 16px;text-align:left;font-size:13px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">Location</th>
+                <th style="padding:12px 16px;text-align:left;font-size:13px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">Date</th>
+                <th style="padding:12px 16px;text-align:left;font-size:13px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">Media</th>
+                <th style="padding:12px 16px;text-align:center;font-size:13px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in reports %}
+            <tr style="border-bottom:1px solid #f3f4f6;">
+                <td style="padding:12px 16px;font-size:13px;color:#111827;font-weight:500;">{{ r.title }}</td>
+                <td style="padding:12px 16px;font-size:13px;color:#374151;">{{ r.get_category_display }}</td>
+                <td style="padding:12px 16px;font-size:13px;">
+                    {% if r.status == 'pending' %}
+                        <span style="background:#fef3c7;color:#92400e;padding:4px 8px;border-radius:12px;font-size:11px;font-weight:500;">⏳ Pending</span>
+                    {% elif r.status == 'in_progress' %}
+                        <span style="background:#dbeafe;color:#1e40af;padding:4px 8px;border-radius:12px;font-size:11px;font-weight:500;">🔄 In Progress</span>
+                    {% elif r.status == 'resolved' %}
+                        <span style="background:#d1fae5;color:#065f46;padding:4px 8px;border-radius:12px;font-size:11px;font-weight:500;">✅ Resolved</span>
+                    {% elif r.status == 'closed' %}
+                        <span style="background:#f3f4f6;color:#374151;padding:4px 8px;border-radius:12px;font-size:11px;font-weight:500;">🔒 Closed</span>
+                    {% endif %}
+                </td>
+                <td style="padding:12px 16px;font-size:13px;color:#374151;">{{ r.location|truncatechars:30 }}</td>
+                <td style="padding:12px 16px;font-size:13px;color:#6b7280;">{{ r.created_at|date:"M d, Y" }}</td>
+                <td style="padding:12px 16px;font-size:13px;color:#374151;">
+                    {% if r.image %}<span style="color:#059669;">📷 Image</span>
+                    {% elif r.video %}<span style="color:#dc2626;">🎥 Video</span>
+                    {% else %}<span style="color:#6b7280;">No media</span>{% endif %}
+                </td>
+                <td style="padding:12px 16px;text-align:center;">
+                    <button onclick="openModal({{ r.id }})" style="background:#3b82f6;color:#ffffff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:500;cursor:pointer;">View</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div style="margin-top:12px;font-size:13px;color:#6b7280;">No reports yet.</div>
+{% endif %}
+{% else %}
+<div style="margin-top:12px;font-size:13px;color:#6b7280;">Please sign in to view your reported issues.</div>
+{% endif %}
+
+<!-- Modal -->
+<div id="reportModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;justify-content:center;align-items:center;">
+    <div style="background:#ffffff;border-radius:12px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;position:relative;">
+        <div style="padding:20px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;">
+            <h3 style="margin:0;font-size:18px;font-weight:600;color:#111827;">Report Details</h3>
+            <button onclick="closeModal()" style="background:none;border:none;font-size:20px;color:#6b7280;cursor:pointer;padding:4px;">&times;</button>
+        </div>
+        <div id="modalContent" style="padding:24px;">
+            <!-- Content will be populated by JavaScript -->
+        </div>
+    </div>
+</div>
+
+<script>
+// Store report data for modal
+const reportData = {
+    {% for r in reports %}
+    {{ r.id }}: {
+        title: "{{ r.title|escapejs }}",
+        category: "{{ r.get_category_display|escapejs }}",
+        status: "{{ r.status }}",
+        status_display: "{{ r.get_status_display|escapejs }}",
+        location: "{{ r.location|escapejs }}",
+        description: "{{ r.description|escapejs }}",
+        created_at: "{{ r.created_at|date:'F d, Y \a\t g:i A' }}",
+        updated_at: "{{ r.updated_at|date:'F d, Y \a\t g:i A' }}",
+        {% if r.image %}image: "{{ r.image.url }}",{% endif %}
+        {% if r.video %}video: "{{ r.video.url }}",{% endif %}
+    },
+    {% endfor %}
+};
+
+function openModal(reportId) {
+    const data = reportData[reportId];
+    if (!data) return;
+    
+    const modal = document.getElementById('reportModal');
+    const content = document.getElementById('modalContent');
+    
+    let mediaHtml = '';
+    if (data.image) {
+        mediaHtml = `<div style="margin-top:16px;"><img src="${data.image}" alt="Issue image" style="max-width:100%;border-radius:8px;border:1px solid #e5e7eb;"/></div>`;
+    } else if (data.video) {
+        mediaHtml = `<div style="margin-top:16px;"><video src="${data.video}" controls style="max-width:100%;border-radius:8px;border:1px solid #e5e7eb;"></video></div>`;
+    }
+    
+    // Status styling
+    let statusHtml = '';
+    if (data.status === 'pending') {
+        statusHtml = '<span style="background:#fef3c7;color:#92400e;padding:6px 12px;border-radius:12px;font-size:12px;font-weight:500;">⏳ Pending Review</span>';
+    } else if (data.status === 'in_progress') {
+        statusHtml = '<span style="background:#dbeafe;color:#1e40af;padding:6px 12px;border-radius:12px;font-size:12px;font-weight:500;">🔄 In Progress</span>';
+    } else if (data.status === 'resolved') {
+        statusHtml = '<span style="background:#d1fae5;color:#065f46;padding:6px 12px;border-radius:12px;font-size:12px;font-weight:500;">✅ Resolved</span>';
+    } else if (data.status === 'closed') {
+        statusHtml = '<span style="background:#f3f4f6;color:#374151;padding:6px 12px;border-radius:12px;font-size:12px;font-weight:500;">🔒 Closed</span>';
+    }
+
+    content.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:12px;">
+            <div>
+                <div style="font-size:14px;color:#6b7280;margin-bottom:4px;">Title</div>
+                <div style="font-size:16px;font-weight:600;color:#111827;">${data.title}</div>
+            </div>
+            <div>
+                <div style="font-size:14px;color:#6b7280;margin-bottom:4px;">Category</div>
+                <div style="font-size:14px;color:#374151;">${data.category}</div>
+            </div>
+            <div>
+                <div style="font-size:14px;color:#6b7280;margin-bottom:4px;">Status</div>
+                <div style="font-size:14px;color:#374151;">${statusHtml}</div>
+            </div>
+            <div>
+                <div style="font-size:14px;color:#6b7280;margin-bottom:4px;">Location</div>
+                <div style="font-size:14px;color:#374151;">${data.location}</div>
+            </div>
+            <div>
+                <div style="font-size:14px;color:#6b7280;margin-bottom:4px;">Description</div>
+                <div style="font-size:14px;color:#111827;white-space:pre-wrap;line-height:1.5;">${data.description}</div>
+            </div>
+            <div>
+                <div style="font-size:14px;color:#6b7280;margin-bottom:4px;">Reported on</div>
+                <div style="font-size:14px;color:#374151;">${data.created_at}</div>
+            </div>
+            <div>
+                <div style="font-size:14px;color:#6b7280;margin-bottom:4px;">Last updated</div>
+                <div style="font-size:14px;color:#374151;">${data.updated_at}</div>
+            </div>
+            ${mediaHtml}
+        </div>
+    `;
+    
+    modal.style.display = 'flex';
+}
+
+function closeModal() {
+    document.getElementById('reportModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+document.getElementById('reportModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeModal();
+    }
+});
+</script>
+{% endblock %}
+

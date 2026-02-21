@@ -1,0 +1,190 @@
+{% extends 'administrator/base.html' %}
+{% block content %}
+<nav class="breadcrumb">
+    <a href="{% url 'admin_home' %}">Home</a>
+    <span>›</span>
+    <a href="{% url 'admin_view_reported_issues' %}">View Reports</a>
+    <span>›</span>
+    <span style="color: #0b1220; font-weight: 600;">Report #{{ report.id }}</span>
+</nav>
+
+<h2 class="header">Report Details</h2>
+<p class="muted">Detailed information about report #{{ report.id }}</p>
+
+<!-- Report Information -->
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;margin:20px 0;">
+    <!-- Main Report Details -->
+    <div style="background:#ffffff;border-radius:12px;padding:24px;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:20px;">
+            <div>
+                <h3 style="margin:0 0 8px 0;color:#1f2937;font-size:20px;font-weight:600;">{{ report.title }}</h3>
+                <div style="display:flex;gap:12px;align-items:center;">
+                    <span style="font-size:12px;padding:4px 8px;border-radius:12px;background:#e0e7ff;color:#3730a3;font-weight:500;">{{ report.get_category_display }}</span>
+                    <span style="font-size:11px;padding:4px 8px;border-radius:12px;font-weight:500;
+                        {% if report.severity == 'low' %}background:#d1fae5;color:#065f46;
+                        {% elif report.severity == 'medium' %}background:#fef3c7;color:#92400e;
+                        {% elif report.severity == 'high' %}background:#fed7d7;color:#c53030;
+                        {% else %}background:#fecaca;color:#991b1b;{% endif %}">
+                        {{ report.get_severity_display }}
+                    </span>
+                    <span style="font-size:11px;padding:4px 8px;border-radius:12px;font-weight:500;
+                        {% if report.status == 'pending' %}background:#fef3c7;color:#92400e;
+                        {% elif report.status == 'in_progress' %}background:#dbeafe;color:#1e40af;
+                        {% elif report.status == 'resolved' %}background:#d1fae5;color:#065f46;
+                        {% else %}background:#f3f4f6;color:#374151;{% endif %}">
+                        {{ report.get_status_display }}
+                    </span>
+                </div>
+            </div>
+            <div style="text-align:right;">
+                <div style="font-size:12px;color:#6b7280;">Report ID</div>
+                <div style="font-size:16px;font-weight:600;color:#1f2937;">#{{ report.id }}</div>
+            </div>
+        </div>
+
+        <!-- Description -->
+        <div style="margin-bottom:20px;">
+            <h4 style="margin:0 0 8px 0;color:#374151;font-size:14px;font-weight:600;">Description</h4>
+            <p style="margin:0;color:#4b5563;line-height:1.5;font-size:14px;">{{ report.description }}</p>
+        </div>
+
+        <!-- Location -->
+        <div style="margin-bottom:20px;">
+            <h4 style="margin:0 0 8px 0;color:#374151;font-size:14px;font-weight:600;">Location</h4>
+            <p style="margin:0;color:#4b5563;font-size:14px;">📍 {{ report.location }}</p>
+        </div>
+
+        <!-- Media -->
+        {% if report.image or report.video %}
+        <div style="margin-bottom:20px;">
+            <h4 style="margin:0 0 12px 0;color:#374151;font-size:14px;font-weight:600;">Media</h4>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                {% if report.image %}
+                <div style="flex:1;min-width:200px;">
+                    <div style="font-size:12px;color:#6b7280;margin-bottom:8px;">📷 Image</div>
+                    <img src="{{ report.image.url }}" alt="Report image" style="width:100%;max-width:300px;border-radius:8px;border:1px solid #e5e7eb;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+                </div>
+                {% endif %}
+                {% if report.video %}
+                <div style="flex:1;min-width:200px;">
+                    <div style="font-size:12px;color:#6b7280;margin-bottom:8px;">🎥 Video</div>
+                    <video controls style="width:100%;max-width:300px;border-radius:8px;border:1px solid #e5e7eb;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+                        <source src="{{ report.video.url }}" type="video/mp4">
+                        <source src="{{ report.video.url }}" type="video/webm">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Timestamps -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding-top:16px;border-top:1px solid #e5e7eb;">
+            <div>
+                <div style="font-size:12px;color:#6b7280;margin-bottom:4px;">Created</div>
+                <div style="font-size:14px;color:#1f2937;font-weight:500;">{{ report.created_at|date:"M d, Y H:i" }}</div>
+            </div>
+            <div>
+                <div style="font-size:12px;color:#6b7280;margin-bottom:4px;">Last Updated</div>
+                <div style="font-size:14px;color:#1f2937;font-weight:500;">{{ report.updated_at|date:"M d, Y H:i" }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div>
+        <!-- Reporter Information -->
+        <div style="background:#ffffff;border-radius:12px;padding:20px;box-shadow:0 2px 4px rgba(0,0,0,0.1);margin-bottom:20px;">
+            <h4 style="margin:0 0 16px 0;color:#374151;font-size:16px;font-weight:600;">Reporter Information</h4>
+            {% if report.reporter %}
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                <div style="width:40px;height:40px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#ffffff;font-weight:600;font-size:16px;">
+                    {{ report.reporter.username|first|upper }}
+                </div>
+                <div>
+                    <div style="font-size:14px;font-weight:500;color:#1f2937;">{{ report.reporter.username }}</div>
+                    <div style="font-size:12px;color:#6b7280;">{{ report.reporter.email }}</div>
+                </div>
+            </div>
+            {% if report.reporter.first_name or report.reporter.last_name %}
+            <div style="margin-bottom:8px;">
+                <div style="font-size:12px;color:#6b7280;">Full Name</div>
+                <div style="font-size:14px;color:#1f2937;">{{ report.reporter.first_name }} {{ report.reporter.last_name }}</div>
+            </div>
+            {% endif %}
+            <div>
+                <div style="font-size:12px;color:#6b7280;">Member Since</div>
+                <div style="font-size:14px;color:#1f2937;">{{ report.reporter.date_joined|date:"M d, Y" }}</div>
+            </div>
+            {% else %}
+            <div style="text-align:center;padding:20px;">
+                <div style="font-size:32px;margin-bottom:8px;">👤</div>
+                <div style="font-size:14px;color:#6b7280;">Anonymous Reporter</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Status Management -->
+        <div style="background:#ffffff;border-radius:12px;padding:20px;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+            <h4 style="margin:0 0 16px 0;color:#374151;font-size:16px;font-weight:600;">Status Management</h4>
+            <form id="statusForm" method="post" action="{% url 'admin_manage_reports' %}">
+                {% csrf_token %}
+                <input type="hidden" name="report_id" value="{{ report.id }}">
+                <div style="margin-bottom:12px;">
+                    <label style="display:block;font-size:12px;color:#4b5563;margin-bottom:4px;font-weight:500;">Current Status</label>
+                    <select name="status" style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;">
+                        {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if report.status == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" style="width:100%;background:#3b82f6;color:#ffffff;border:none;padding:10px 16px;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;">Update Status</button>
+            </form>
+        </div>
+
+        <!-- Quick Actions -->
+        <div style="background:#ffffff;border-radius:12px;padding:20px;box-shadow:0 2px 4px rgba(0,0,0,0.1);margin-top:20px;">
+            <h4 style="margin:0 0 16px 0;color:#374151;font-size:16px;font-weight:600;">Quick Actions</h4>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <a href="{% url 'admin_view_reported_issues' %}" style="background:#f3f4f6;color:#374151;padding:8px 12px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:500;text-align:center;">← Back to Reports</a>
+                <a href="{% url 'admin_manage_reports' %}" style="background:#10b981;color:#ffffff;padding:8px 12px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:500;text-align:center;">Manage All Reports</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Handle status form submission
+document.getElementById('statusForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const reportId = formData.get('report_id');
+    const newStatus = formData.get('status');
+    
+    fetch('{% url "admin_manage_reports" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            alert('Status updated successfully!');
+            // Reload the page to show updated status
+            window.location.reload();
+        } else {
+            alert('Error updating status: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while updating the status.');
+    });
+});
+</script>
+{% endblock %}

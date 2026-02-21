@@ -1,0 +1,1000 @@
+{% extends 'civilian/base.html' %}
+{% block content %}
+<!-- SweetAlert2 CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css">
+<!-- SweetAlert2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
+
+<nav class="breadcrumb">
+    <a href="#">Home</a>
+    <span>›</span>
+    <span style="color: #0b1220; font-weight: 600;">Report Issue</span>
+</nav>
+
+<h2 class="header">Report an Issue</h2>
+<p class="muted">Report potholes, waste problems, faulty streetlights, and other concerns.</p>
+
+{% if error %}
+<div class="error" style="background:#fef2f2;color:#991b1b;border:1px solid #fecaca;padding:10px 12px;border-radius:10px;font-size:13px;margin-bottom:10px;">{{ error }}</div>
+{% endif %}
+{% if success %}
+<div class="success" style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;padding:10px 12px;border-radius:10px;font-size:13px;margin-bottom:10px;">{{ success }}</div>
+{% endif %}
+
+<form method="post" action="" enctype="multipart/form-data" id="reportForm">
+    {% csrf_token %}
+    <div class="field" style="display:flex;flex-direction:column;gap:8px;margin:14px 0;">
+        <label for="title" style="font-size:13px;color:#4b5563;">Title</label>
+        <input id="title" name="title" type="text" placeholder="Short summary e.g., Large pothole on Main St" required style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid #d1d5db;background:#ffffff;color:#0b1220;outline:none;" />
+    </div>
+    <div class="field" style="display:flex;flex-direction:column;gap:8px;margin:14px 0;">
+        <label style="font-size:13px;color:#4b5563;">Attach media (optional)</label>
+        <span style="font-size:12px;color:#6b7280;">Take a photo or record a short video (max 6s) to document the issue. You can upload both image and video.</span>
+        
+        <!-- Camera and Upload Options -->
+        <div id="cameraOptions">
+            <div style="display:flex;gap:8px;margin-bottom:12px;">
+                <button type="button" id="photoBtn" onclick="startPhotoCapture()" style="background:#f59e0b;color:#ffffff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:500;cursor:pointer;">📸 Take Photo</button>
+                <button type="button" id="videoBtn" onclick="startVideoCapture()" style="background:#ef4444;color:#ffffff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:500;cursor:pointer;">🎥 Record Video</button>
+                <button type="button" id="uploadPhotoBtn" onclick="uploadPhoto()" style="background:#10b981;color:#ffffff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:500;cursor:pointer;">📁 Upload Photo</button>
+                <button type="button" id="uploadVideoBtn" onclick="uploadVideo()" style="background:#3b82f6;color:#ffffff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:500;cursor:pointer;">📁 Upload Video</button>
+            </div>
+            
+            <!-- Camera Preview -->
+            <div id="cameraPreview" style="display:none;">
+                <video id="cameraVideo" autoplay playsinline style="width:100%;max-width:400px;border-radius:8px;border:1px solid #d1d5db;"></video>
+                
+                <!-- Recording Timer -->
+                <div id="recordingTimer" style="display:none;text-align:center;margin:8px 0;">
+                    <div style="background:#ef4444;color:#ffffff;border-radius:20px;padding:8px 16px;font-size:14px;font-weight:600;display:inline-block;">
+                        🔴 Recording: <span id="timerDisplay">6</span>s
+                    </div>
+                </div>
+                
+                <div style="margin-top:8px;">
+                    <button type="button" id="captureBtn" onclick="capturePhoto()" style="background:#10b981;color:#ffffff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:500;cursor:pointer;margin-right:8px;display:none;">📸 Capture</button>
+                    <button type="button" id="stopBtn" onclick="stopVideoRecording()" style="background:#ef4444;color:#ffffff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:500;cursor:pointer;margin-right:8px;display:none;">⏹️ Stop</button>
+                    <button type="button" onclick="closeCamera()" style="background:#6b7280;color:#ffffff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:500;cursor:pointer;">❌ Cancel</button>
+                </div>
+            </div>
+
+            <!-- Captured/Uploaded Media Preview -->
+            <div id="capturedPreview" style="display:none;margin-top:12px;">
+                <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:12px;margin-bottom:12px;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                        <span style="font-size:16px;">✅</span>
+                        <span style="font-size:14px;font-weight:500;color:#065f46;">Media Captured/Uploaded Successfully!</span>
+                    </div>
+                    <p style="font-size:12px;color:#047857;margin:0;">Please review the quality below. If the image/video is not clear enough, you can retake or replace it.</p>
+                </div>
+                
+                <!-- Media Preview Container -->
+                <div style="background:#f9fafb;border:2px dashed #d1d5db;border-radius:12px;padding:16px;text-align:center;margin-bottom:12px;">
+                    <div id="capturedContent" style="display:inline-block;max-width:100%;"></div>
+                </div>
+                
+                <div style="margin-top:12px;">
+                    <button type="button" onclick="confirmCapturedMedia()" style="background:#10b981;color:#ffffff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:500;cursor:pointer;margin-right:8px;">✅ Use This Media</button>
+                    <button type="button" onclick="retakeMedia()" style="background:#6b7280;color:#ffffff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:500;cursor:pointer;">🔄 Retake/Replace</button>
+                </div>
+            </div>
+
+            <!-- Upload Confirmation -->
+            <div id="uploadConfirmation" style="display:none;margin-top:12px;">
+                <div style="background:#dbeafe;border:1px solid #93c5fd;border-radius:8px;padding:12px;margin-bottom:12px;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                        <span style="font-size:16px;">📤</span>
+                        <span style="font-size:14px;font-weight:500;color:#1e40af;">Ready to Upload!</span>
+                    </div>
+                    <p style="font-size:12px;color:#1d4ed8;margin:0;">Your media is ready to be included with your report. You can submit the form now.</p>
+                </div>
+                
+                <!-- Final Media Preview Container -->
+                <div id="finalMediaContainer" style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
+                    <!-- Image Preview -->
+                    <div id="imagePreviewContainer" style="display:none;flex:1;min-width:200px;">
+                        <div style="background:#f0f9ff;border:2px solid #0ea5e9;border-radius:12px;padding:12px;text-align:center;">
+                            <div style="font-size:12px;color:#0ea5e9;font-weight:600;margin-bottom:8px;">📷 Image</div>
+                            <div id="finalImagePreview"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Video Preview -->
+                    <div id="videoPreviewContainer" style="display:none;flex:1;min-width:200px;">
+                        <div style="background:#f0f9ff;border:2px solid #0ea5e9;border-radius:12px;padding:12px;text-align:center;">
+                            <div style="font-size:12px;color:#0ea5e9;font-weight:600;margin-bottom:8px;">🎥 Video</div>
+                            <div id="finalVideoPreview"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top:12px;">
+                    <button type="button" onclick="removeAllMedia()" style="background:#ef4444;color:#ffffff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:500;cursor:pointer;margin-right:8px;">🗑️ Remove All Media</button>
+                    <button type="button" onclick="removeImageOnly()" style="background:#f59e0b;color:#ffffff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:500;cursor:pointer;margin-right:8px;">🗑️ Remove Image Only</button>
+                    <button type="button" onclick="removeVideoOnly()" style="background:#ef4444;color:#ffffff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:500;cursor:pointer;">🗑️ Remove Video Only</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden file inputs for form submission and upload -->
+        <input id="image" name="image" type="file" accept="image/*" style="display:none;" />
+        <input id="video" name="video" type="file" accept="video/*" style="display:none;" />
+
+        <small id="media-error" style="color:#991b1b;display:none;">Video must be 6 seconds or less.</small>
+        <video id="video-probe" style="display:none;max-width:100%;border-radius:8px;" preload="metadata"></video>
+    </div>
+    <div class="field" style="display:flex;flex-direction:column;gap:8px;margin:14px 0;">
+        <label for="category" style="font-size:13px;color:#4b5563;">Category</label>
+        <select id="category" name="category" required style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid #d1d5db;background:#ffffff;color:#0b1220;outline:none;">
+            <option value="">Select a category</option>
+            <option value="pothole">Pothole</option>
+            <option value="waste">Waste management</option>
+            <option value="streetlight">Faulty streetlight</option>
+            <option value="water">Water and sanitation</option>
+            <option value="other">Other</option>
+        </select>
+    </div>
+    <div class="field" style="display:flex;flex-direction:column;gap:8px;margin:14px 0;">
+        <label for="location" style="font-size:13px;color:#4b5563;">Location</label>
+    <input id="location" name="location" type="text" placeholder="Detecting your location..." required style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid #d1d5db;background:#ffffff;color:#0b1220;outline:none;" />
+    <small id="location-help" class="muted" style="color:#6b7280">We will auto-fill using your device location. You can edit if needed.</small>
+    <button id="retry-location" type="button" style="margin-top:8px;width:max-content;background:#eef2ff;color:#1e3a8a;border:1px solid #bfdbfe;border-radius:8px;padding:8px 10px;font-weight:600;cursor:pointer;">Retry location</button>
+    </div>
+    <div class="field" style="display:flex;flex-direction:column;gap:8px;margin:14px 0;">
+        <label for="description" style="font-size:13px;color:#4b5563;">Description</label>
+        <textarea id="description" name="description" rows="5" placeholder="Describe the issue with details" required style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid #d1d5db;background:#ffffff;color:#0b1220;outline:none;"></textarea>
+    </div>
+    <button class="btn" type="submit" style="width:100%;margin-top:10px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#ffffff;border:none;border-radius:10px;padding:12px 14px;font-weight:800;cursor:pointer;">Submit report</button>
+</form>
+
+<script>
+    // Location detection code
+    const locationInput = document.getElementById('location');
+    const retryBtn = document.getElementById('retry-location');
+    const helpText = document.getElementById('location-help');
+
+    async function reverseGeocode(lat, lon) {
+        try {
+            const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`;
+            const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) throw new Error('Reverse geocoding failed');
+            const data = await res.json();
+            return data.display_name || `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+        } catch (e) {
+            return `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+        }
+    }
+
+    function setStatus(msg, isError = false) {
+        if (!helpText) return;
+        helpText.textContent = msg;
+        helpText.style.color = isError ? '#991b1b' : '#6b7280';
+    }
+
+    function detectLocation() {
+        if (!('geolocation' in navigator)) {
+            setStatus('Geolocation is not supported in your browser. Please type your location.', true);
+            locationInput.placeholder = 'Street name, intersection, or landmark';
+            return;
+        }
+        setStatus('Detecting your location…');
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+            const { latitude, longitude } = pos.coords;
+            const pretty = await reverseGeocode(latitude, longitude);
+            locationInput.value = pretty;
+            locationInput.placeholder = 'Street name, intersection, or landmark';
+            setStatus('Location detected. You may edit if needed.');
+        }, (err) => {
+            setStatus('Could not get location permission. Please type your location.', true);
+            locationInput.placeholder = 'Street name, intersection, or landmark';
+        }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+    }
+
+    retryBtn.addEventListener('click', detectLocation);
+    window.addEventListener('DOMContentLoaded', detectLocation);
+
+    // Media validation and camera functionality
+    const imageInput = document.getElementById('image');
+    const videoInput = document.getElementById('video');
+    const mediaError = document.getElementById('media-error');
+    const videoProbe = document.getElementById('video-probe');
+
+    // Camera variables
+    let stream = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let isRecording = false;
+    let currentMediaType = null; // 'photo' or 'video'
+    let capturedBlob = null;
+    let recordingTimer = null;
+    let recordingTimeLeft = 6;
+    let capturedFile = null;
+    let capturedObjectURL = null;
+
+    // Store separate media objects
+    let imageMedia = {
+        file: null,
+        objectURL: null,
+        confirmed: false,
+        source: null // 'camera' or 'upload'
+    };
+    
+    let videoMedia = {
+        file: null,
+        objectURL: null,
+        confirmed: false,
+        source: null // 'camera' or 'upload'
+    };
+
+    function setMediaError(msg) {
+        mediaError.textContent = msg;
+        mediaError.style.display = msg ? 'block' : 'none';
+    }
+
+    // Clear all media
+    function clearAllMedia() {
+        imageInput.value = '';
+        videoInput.value = '';
+        setMediaError('');
+        document.getElementById('capturedPreview').style.display = 'none';
+        document.getElementById('uploadConfirmation').style.display = 'none';
+        
+        // Clean up object URLs
+        if (imageMedia.objectURL) {
+            URL.revokeObjectURL(imageMedia.objectURL);
+            imageMedia.objectURL = null;
+        }
+        if (videoMedia.objectURL) {
+            URL.revokeObjectURL(videoMedia.objectURL);
+            videoMedia.objectURL = null;
+        }
+        
+        imageMedia.file = null;
+        videoMedia.file = null;
+        imageMedia.confirmed = false;
+        videoMedia.confirmed = false;
+        imageMedia.source = null;
+        videoMedia.source = null;
+        
+        updateFinalPreviews();
+    }
+
+    // Remove image only
+    function removeImageOnly() {
+        imageInput.value = '';
+        if (imageMedia.objectURL) {
+            URL.revokeObjectURL(imageMedia.objectURL);
+            imageMedia.objectURL = null;
+        }
+        imageMedia.file = null;
+        imageMedia.confirmed = false;
+        imageMedia.source = null;
+        updateFinalPreviews();
+        checkUploadConfirmation();
+    }
+
+    // Remove video only
+    function removeVideoOnly() {
+        videoInput.value = '';
+        if (videoMedia.objectURL) {
+            URL.revokeObjectURL(videoMedia.objectURL);
+            videoMedia.objectURL = null;
+        }
+        videoMedia.file = null;
+        videoMedia.confirmed = false;
+        videoMedia.source = null;
+        setMediaError('');
+        updateFinalPreviews();
+        checkUploadConfirmation();
+    }
+
+    // Remove all media
+    function removeAllMedia() {
+        clearAllMedia();
+    }
+
+    // Update final previews based on available media
+    function updateFinalPreviews() {
+        const imageContainer = document.getElementById('imagePreviewContainer');
+        const videoContainer = document.getElementById('videoPreviewContainer');
+        const finalImagePreview = document.getElementById('finalImagePreview');
+        const finalVideoPreview = document.getElementById('finalVideoPreview');
+
+        // Image preview
+        if (imageMedia.file && imageMedia.objectURL) {
+            imageContainer.style.display = 'block';
+            finalImagePreview.innerHTML = `
+                <img src="${imageMedia.objectURL}" 
+                     style="max-width:100%;max-height:150px;border-radius:8px;border:1px solid #0ea5e9;" 
+                     alt="Image preview">
+                <div style="margin-top:8px;font-size:11px;color:#0ea5e9;">
+                    ✅ Image (${(imageMedia.file.size / 1024).toFixed(1)} KB)
+                    <div style="font-size:10px;color:#6b7280;">Source: ${imageMedia.source === 'camera' ? 'Camera' : 'Upload'}</div>
+                </div>
+            `;
+        } else {
+            imageContainer.style.display = 'none';
+            finalImagePreview.innerHTML = '';
+        }
+
+        // Video preview
+        if (videoMedia.file && videoMedia.objectURL) {
+            videoContainer.style.display = 'block';
+            finalVideoPreview.innerHTML = `
+                <video src="${videoMedia.objectURL}" 
+                       controls 
+                       style="max-width:100%;max-height:150px;border-radius:8px;border:1px solid #0ea5e9;" 
+                       preload="metadata">
+                </video>
+                <div style="margin-top:8px;font-size:11px;color:#0ea5e9;">
+                    ✅ Video (${(videoMedia.file.size / 1024).toFixed(1)} KB)
+                    <div style="font-size:10px;color:#6b7280;">Source: ${videoMedia.source === 'camera' ? 'Camera' : 'Upload'}</div>
+                </div>
+            `;
+        } else {
+            videoContainer.style.display = 'none';
+            finalVideoPreview.innerHTML = '';
+        }
+    }
+
+    // Check if we should show upload confirmation
+    function checkUploadConfirmation() {
+        const hasImage = imageMedia.file !== null;
+        const hasVideo = videoMedia.file !== null;
+        
+        if (hasImage || hasVideo) {
+            document.getElementById('uploadConfirmation').style.display = 'block';
+        } else {
+            document.getElementById('uploadConfirmation').style.display = 'none';
+        }
+    }
+
+    // Start photo capture
+    async function startPhotoCapture() {
+        currentMediaType = 'photo';
+        console.log('Starting photo capture, currentMediaType set to:', currentMediaType);
+        
+        // Clear any existing video capture
+        if (videoMedia.file) {
+            console.log('Clearing existing video before photo capture');
+            removeVideoOnly();
+        }
+        
+        await startCamera();
+        // Show capture button for photos
+        document.getElementById('captureBtn').style.display = 'inline-block';
+        document.getElementById('stopBtn').style.display = 'none';
+    }
+
+    // Start video capture
+    async function startVideoCapture() {
+        currentMediaType = 'video';
+        console.log('Starting video capture, currentMediaType set to:', currentMediaType);
+        
+        // Clear any existing image capture
+        if (imageMedia.file) {
+            console.log('Clearing existing image before video capture');
+            removeImageOnly();
+        }
+        
+        await startCamera();
+        document.getElementById('captureBtn').style.display = 'none';
+        document.getElementById('stopBtn').style.display = 'inline-block';
+        startVideoRecording();
+    }
+
+    // Start camera
+    async function startCamera() {
+        console.log('Starting camera for media type:', currentMediaType);
+        try {
+            // Stop any existing stream first
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            
+            const constraints = {
+                video: { 
+                    facingMode: 'environment',
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                }
+            };
+            
+            if (currentMediaType === 'video') {
+                constraints.audio = true;
+            }
+            
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+            
+            console.log('Camera stream obtained:', stream);
+            const cameraVideo = document.getElementById('cameraVideo');
+            if (!cameraVideo) {
+                console.error('cameraVideo element not found');
+                return;
+            }
+            
+            cameraVideo.srcObject = stream;
+            document.getElementById('cameraPreview').style.display = 'block';
+            console.log('Camera preview shown');
+            
+            // Wait for video to be ready
+            await new Promise(resolve => {
+                cameraVideo.onloadedmetadata = () => {
+                    cameraVideo.play();
+                    resolve();
+                };
+            });
+            
+        } catch (error) {
+            console.error('Error accessing camera:', error);
+            setMediaError('Could not access camera. Please check permissions and try again.');
+            
+            // Fallback to file upload
+            if (currentMediaType === 'photo') {
+                uploadPhoto();
+            } else {
+                uploadVideo();
+            }
+        }
+    }
+
+    // Close camera
+    function closeCamera() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+        document.getElementById('cameraPreview').style.display = 'none';
+        document.getElementById('recordingTimer').style.display = 'none';
+        if (isRecording) {
+            stopVideoRecording();
+        }
+        if (recordingTimer) {
+            clearInterval(recordingTimer);
+            recordingTimer = null;
+        }
+        recordingTimeLeft = 6;
+    }
+
+    // Capture photo
+    function capturePhoto() {
+        console.log('capturePhoto called');
+        const cameraVideo = document.getElementById('cameraVideo');
+        if (!cameraVideo) {
+            console.error('cameraVideo element not found');
+            return;
+        }
+        
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = cameraVideo.videoWidth;
+        canvas.height = cameraVideo.videoHeight;
+        console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
+        
+        ctx.drawImage(cameraVideo, 0, 0);
+        
+        canvas.toBlob((blob) => {
+            console.log('Photo blob created:', blob);
+            if (!blob) {
+                console.error('Failed to create photo blob');
+                return;
+            }
+            
+            capturedBlob = blob;
+            // Create File object from blob
+            capturedFile = new File([blob], `captured_photo_${Date.now()}.jpg`, {
+                type: 'image/jpeg',
+                lastModified: Date.now()
+            });
+            console.log('Photo file created:', capturedFile);
+            showCapturedMedia(blob, 'image');
+        }, 'image/jpeg', 0.8);
+    }
+
+    // Start video recording
+    function startVideoRecording() {
+        if (!stream) return;
+        
+        recordedChunks = [];
+        
+        // Try different MIME types for better compatibility
+        const mimeTypes = [
+            'video/webm;codecs=vp9',
+            'video/webm;codecs=vp8', 
+            'video/webm',
+            'video/mp4;codecs=h264',
+            'video/mp4'
+        ];
+        
+        let supportedMimeType = '';
+        for (const mimeType of mimeTypes) {
+            if (MediaRecorder.isTypeSupported(mimeType)) {
+                supportedMimeType = mimeType;
+                console.log('Using MIME type:', mimeType);
+                break;
+            }
+        }
+        
+        try {
+            if (supportedMimeType) {
+                mediaRecorder = new MediaRecorder(stream, {
+                    mimeType: supportedMimeType
+                });
+            } else {
+                console.warn('No supported MIME type found, using default');
+                mediaRecorder = new MediaRecorder(stream);
+            }
+        } catch (e) {
+            console.warn('MediaRecorder creation failed:', e);
+            mediaRecorder = new MediaRecorder(stream);
+        }
+        
+        mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                recordedChunks.push(event.data);
+            }
+        };
+        
+        mediaRecorder.onstop = () => {
+            console.log('Video recording stopped, chunks:', recordedChunks.length);
+            if (recordedChunks.length === 0) {
+                console.error('No video data recorded');
+                return;
+            }
+            
+            const mimeType = mediaRecorder.mimeType || 'video/webm';
+            const blob = new Blob(recordedChunks, { type: mimeType });
+            console.log('Video blob created:', blob, 'Size:', blob.size, 'Type:', mimeType);
+            
+            if (!blob || blob.size === 0) {
+                console.error('Failed to create video blob or blob is empty');
+                setMediaError('Recording failed - no video data captured. Please try again.');
+                return;
+            }
+            
+            capturedBlob = blob;
+            // Create File object from blob with proper extension
+            let fileExtension = 'webm'; // default
+            if (mimeType.includes('mp4')) {
+                fileExtension = 'mp4';
+            } else if (mimeType.includes('webm')) {
+                fileExtension = 'webm';
+            }
+            
+            capturedFile = new File([blob], `captured_video_${Date.now()}.${fileExtension}`, {
+                type: mimeType,
+                lastModified: Date.now()
+            });
+            console.log('Video file created:', capturedFile, 'Extension:', fileExtension);
+            showCapturedMedia(blob, 'video');
+        };
+        
+        mediaRecorder.onerror = (event) => {
+            console.error('MediaRecorder error:', event.error);
+            setMediaError('Recording failed. Please try again.');
+        };
+        
+        mediaRecorder.start(1000); // Collect data every second
+        isRecording = true;
+        
+        // Start 6-second countdown timer
+        recordingTimeLeft = 6;
+        document.getElementById('recordingTimer').style.display = 'block';
+        document.getElementById('timerDisplay').textContent = recordingTimeLeft;
+        
+        recordingTimer = setInterval(() => {
+            recordingTimeLeft--;
+            document.getElementById('timerDisplay').textContent = recordingTimeLeft;
+            
+            if (recordingTimeLeft <= 0) {
+                stopVideoRecording();
+            }
+        }, 1000);
+    }
+
+    // Stop video recording
+    function stopVideoRecording() {
+        if (mediaRecorder && isRecording) {
+            mediaRecorder.stop();
+            isRecording = false;
+        }
+        
+        // Clear timer and hide timer display
+        if (recordingTimer) {
+            clearInterval(recordingTimer);
+            recordingTimer = null;
+        }
+        document.getElementById('recordingTimer').style.display = 'none';
+        recordingTimeLeft = 6;
+    }
+
+    // Show captured media preview
+    function showCapturedMedia(blob, type) {
+        console.log('showCapturedMedia called with type:', type, 'blob:', blob);
+        
+        const capturedContent = document.getElementById('capturedContent');
+        if (!capturedContent) {
+            console.error('capturedContent element not found');
+            return;
+        }
+        
+        // Clean up previous object URL
+        if (capturedObjectURL) {
+            URL.revokeObjectURL(capturedObjectURL);
+        }
+        
+        capturedObjectURL = URL.createObjectURL(blob);
+        console.log('Created object URL:', capturedObjectURL);
+        
+        if (type === 'image') {
+            capturedContent.innerHTML = `
+                <img src="${capturedObjectURL}" 
+                     style="max-width:100%;max-height:300px;border-radius:8px;border:1px solid #e5e7eb;box-shadow:0 2px 4px rgba(0,0,0,0.1);" 
+                     alt="Captured photo"
+                     onload="console.log('Image loaded successfully')"
+                     onerror="console.error('Image failed to load')">
+                <div style="margin-top:8px;font-size:12px;color:#6b7280;">
+                    📷 Photo captured • ${(blob.size / 1024).toFixed(1)} KB
+                </div>
+            `;
+        } else {
+            capturedContent.innerHTML = `
+                <video src="${capturedObjectURL}" 
+                       controls 
+                       style="max-width:100%;max-height:300px;border-radius:8px;border:1px solid #e5e7eb;box-shadow:0 2px 4px rgba(0,0,0,0.1);" 
+                       preload="metadata"
+                       onloadedmetadata="console.log('Video metadata loaded')"
+                       onerror="console.error('Video failed to load')">
+                </video>
+                <div style="margin-top:8px;font-size:12px;color:#6b7280;">
+                    🎥 Video captured • ${(blob.size / 1024).toFixed(1)} KB
+                </div>
+            `;
+        }
+        
+        const previewDiv = document.getElementById('capturedPreview');
+        if (previewDiv) {
+            previewDiv.style.display = 'block';
+            console.log('Preview div shown');
+        } else {
+            console.error('capturedPreview element not found');
+        }
+        
+        closeCamera();
+    }
+
+    // Confirm captured media for upload
+    function confirmCapturedMedia() {
+        if (!capturedBlob || !capturedFile) return;
+        
+        console.log('confirmCapturedMedia called with currentMediaType:', currentMediaType);
+        console.log('capturedFile type:', capturedFile.type);
+        
+        // Determine media type from file type if currentMediaType is not set correctly
+        let mediaType = currentMediaType;
+        if (!mediaType || (mediaType !== 'image' && mediaType !== 'video')) {
+            if (capturedFile.type.startsWith('image/')) {
+                mediaType = 'image';
+            } else if (capturedFile.type.startsWith('video/')) {
+                mediaType = 'video';
+            } else {
+                console.error('Cannot determine media type for file:', capturedFile);
+                setMediaError('Invalid file type. Please try again.');
+                return;
+            }
+            console.log('Determined media type from file:', mediaType);
+        }
+        
+        // Validate video duration if it's a video
+        if (mediaType === 'video') {
+            console.log('Validating video duration...');
+            
+            // Skip client-side duration validation to prevent errors
+            console.log('Skipping client-side duration validation, proceeding with upload');
+            setMediaError(''); // Clear any previous errors
+            proceedWithUploadConfirmation();
+            return;
+        } else {
+            // Image is always valid, proceed with upload confirmation
+            console.log('Image validation passed, proceeding with upload confirmation');
+            proceedWithUploadConfirmation();
+        }
+    }
+
+    // Proceed with upload confirmation
+    function proceedWithUploadConfirmation() {
+        if (!capturedFile) return;
+        
+        console.log('proceedWithUploadConfirmation called with currentMediaType:', currentMediaType);
+        console.log('capturedFile type:', capturedFile.type);
+        console.log('capturedFile name:', capturedFile.name);
+        
+        // Determine media type from file type if currentMediaType is not set correctly
+        let mediaType = currentMediaType;
+        if (!mediaType || (mediaType !== 'image' && mediaType !== 'video')) {
+            if (capturedFile.type.startsWith('image/')) {
+                mediaType = 'image';
+            } else if (capturedFile.type.startsWith('video/')) {
+                mediaType = 'video';
+            } else {
+                console.error('Cannot determine media type for file:', capturedFile);
+                setMediaError('Invalid file type. Please try again.');
+                return;
+            }
+            console.log('Determined media type from file:', mediaType);
+        }
+        
+        // Store the media in the appropriate object
+        if (mediaType === 'image') {
+            // Clean up previous image object URL
+            if (imageMedia.objectURL) {
+                URL.revokeObjectURL(imageMedia.objectURL);
+            }
+            
+            imageMedia.file = capturedFile;
+            imageMedia.objectURL = capturedObjectURL;
+            imageMedia.confirmed = true;
+            imageMedia.source = 'camera';
+            
+            // Set the file input
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(capturedFile);
+            imageInput.files = dataTransfer.files;
+            
+            console.log('Image file set to input:', imageInput.files[0]?.name);
+            
+        } else if (mediaType === 'video') {
+            // Clean up previous video object URL
+            if (videoMedia.objectURL) {
+                URL.revokeObjectURL(videoMedia.objectURL);
+            }
+            
+            videoMedia.file = capturedFile;
+            videoMedia.objectURL = capturedObjectURL;
+            videoMedia.confirmed = true;
+            videoMedia.source = 'camera';
+            
+            // Set the file input
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(capturedFile);
+            videoInput.files = dataTransfer.files;
+            
+            console.log('Video file set to input:', videoInput.files[0]?.name);
+        }
+        
+        // Reset capture variables
+        capturedObjectURL = null;
+        capturedFile = null;
+        capturedBlob = null;
+        
+        // Show upload confirmation and update previews
+        document.getElementById('capturedPreview').style.display = 'none';
+        updateFinalPreviews();
+        checkUploadConfirmation();
+        
+        setMediaError('');
+    }
+
+    // Retake media
+    function retakeMedia() {
+        document.getElementById('capturedPreview').style.display = 'none';
+        
+        // Clean up object URL
+        if (capturedObjectURL) {
+            URL.revokeObjectURL(capturedObjectURL);
+            capturedObjectURL = null;
+        }
+        
+        capturedBlob = null;
+        capturedFile = null;
+        setMediaError('');
+        
+        if (currentMediaType === 'photo') {
+            // If it was from camera, restart camera; if from upload, trigger upload again
+            if (imageMedia.source === 'camera') {
+                startPhotoCapture();
+            } else {
+                uploadPhoto();
+            }
+        } else {
+            // If it was from camera, restart camera; if from upload, trigger upload again
+            if (videoMedia.source === 'camera') {
+                startVideoCapture();
+            } else {
+                uploadVideo();
+            }
+        }
+    }
+
+    // Upload photo function
+    function uploadPhoto() {
+        currentMediaType = 'photo';
+        console.log('Triggering photo upload');
+        imageInput.click();
+    }
+
+    // Upload video function
+    function uploadVideo() {
+        currentMediaType = 'video';
+        console.log('Triggering video upload');
+        videoInput.click();
+    }
+
+    // Form submission handler
+    document.getElementById('reportForm').addEventListener('submit', function(event) {
+        // Check if camera is still active
+        if (isRecording || stream) {
+            event.preventDefault();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Camera Still Active',
+                text: 'Please finish recording or close the camera before submitting.',
+                confirmButtonColor: '#3b82f6',
+                confirmButtonText: 'OK'
+            });
+            return false;
+        }
+
+        // Media is optional, so no need to require it
+        // But if there's captured media that hasn't been confirmed, warn the user
+        if (capturedBlob && document.getElementById('capturedPreview').style.display !== 'none') {
+            event.preventDefault();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Media Not Confirmed',
+                text: 'Please confirm or retake your captured media before submitting the form.',
+                confirmButtonColor: '#3b82f6',
+                confirmButtonText: 'OK'
+            });
+            return false;
+        }
+
+        // Validate file types before submission
+        const imageFile = imageInput.files[0];
+        const videoFile = videoInput.files[0];
+        
+        if (imageFile) {
+            console.log('Submitting image file:', imageFile.name, 'type:', imageFile.type);
+            if (!imageFile.type.startsWith('image/')) {
+                event.preventDefault();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Image File',
+                    text: 'The selected file is not a valid image. Please select an image file.',
+                    confirmButtonColor: '#3b82f6',
+                    confirmButtonText: 'OK'
+                });
+                return false;
+            }
+        }
+        
+        if (videoFile) {
+            console.log('Submitting video file:', videoFile.name, 'type:', videoFile.type);
+            if (!videoFile.type.startsWith('video/')) {
+                event.preventDefault();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Video File',
+                    text: 'The selected file is not a valid video. Please select a video file.',
+                    confirmButtonColor: '#3b82f6',
+                    confirmButtonText: 'OK'
+                });
+                return false;
+            }
+        }
+
+        // No video validation on form submission - let the server handle it
+        return true;
+    });
+
+    // File input event listeners for uploaded files
+    imageInput.addEventListener('change', () => {
+        if (imageInput.files && imageInput.files[0]) {
+            const file = imageInput.files[0];
+            
+            // Clean up previous image object URL
+            if (imageMedia.objectURL) {
+                URL.revokeObjectURL(imageMedia.objectURL);
+            }
+            
+            imageMedia.file = file;
+            imageMedia.objectURL = URL.createObjectURL(file);
+            imageMedia.confirmed = true;
+            imageMedia.source = 'upload';
+            
+            // Show the captured preview for user to confirm
+            showUploadedMedia(file, 'image');
+        }
+    });
+
+    videoInput.addEventListener('change', () => {
+        if (!videoInput.files || !videoInput.files[0]) return;
+        
+        const file = videoInput.files[0];
+        
+        // Clean up previous video object URL
+        if (videoMedia.objectURL) {
+            URL.revokeObjectURL(videoMedia.objectURL);
+        }
+        
+        videoMedia.file = file;
+        videoMedia.objectURL = URL.createObjectURL(file);
+        videoMedia.confirmed = true;
+        videoMedia.source = 'upload';
+        
+        // Show the captured preview for user to confirm
+        showUploadedMedia(file, 'video');
+    });
+
+    // Show uploaded media in preview
+    function showUploadedMedia(file, type) {
+        console.log('showUploadedMedia called with type:', type, 'file:', file);
+        
+        const capturedContent = document.getElementById('capturedContent');
+        if (!capturedContent) {
+            console.error('capturedContent element not found');
+            return;
+        }
+        
+        // Clean up previous object URL
+        if (capturedObjectURL) {
+            URL.revokeObjectURL(capturedObjectURL);
+        }
+        
+        capturedObjectURL = URL.createObjectURL(file);
+        console.log('Created object URL:', capturedObjectURL);
+        
+        if (type === 'image') {
+            capturedContent.innerHTML = `
+                <img src="${capturedObjectURL}" 
+                     style="max-width:100%;max-height:300px;border-radius:8px;border:1px solid #e5e7eb;box-shadow:0 2px 4px rgba(0,0,0,0.1);" 
+                     alt="Uploaded photo"
+                     onload="console.log('Image loaded successfully')"
+                     onerror="console.error('Image failed to load')">
+                <div style="margin-top:8px;font-size:12px;color:#6b7280;">
+                    📷 Photo uploaded • ${(file.size / 1024).toFixed(1)} KB
+                </div>
+            `;
+        } else {
+            capturedContent.innerHTML = `
+                <video src="${capturedObjectURL}" 
+                       controls 
+                       style="max-width:100%;max-height:300px;border-radius:8px;border:1px solid #e5e7eb;box-shadow:0 2px 4px rgba(0,0,0,0.1);" 
+                       preload="metadata"
+                       onloadedmetadata="console.log('Video metadata loaded')"
+                       onerror="console.error('Video failed to load')">
+                </video>
+                <div style="margin-top:8px;font-size:12px;color:#6b7280;">
+                    🎥 Video uploaded • ${(file.size / 1024).toFixed(1)} KB
+                </div>
+            `;
+        }
+        
+        const previewDiv = document.getElementById('capturedPreview');
+        if (previewDiv) {
+            previewDiv.style.display = 'block';
+            console.log('Preview div shown');
+        } else {
+            console.error('capturedPreview element not found');
+        }
+        
+        // Set captured file for confirmation
+        capturedFile = file;
+        capturedBlob = file;
+    }
+
+    // Clean up object URLs when page unloads
+    window.addEventListener('beforeunload', () => {
+        if (imageMedia.objectURL) {
+            URL.revokeObjectURL(imageMedia.objectURL);
+        }
+        if (videoMedia.objectURL) {
+            URL.revokeObjectURL(videoMedia.objectURL);
+        }
+        if (capturedObjectURL) {
+            URL.revokeObjectURL(capturedObjectURL);
+        }
+    });
+</script>
+{% endblock %}

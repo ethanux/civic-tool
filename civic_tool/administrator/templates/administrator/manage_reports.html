@@ -1,0 +1,206 @@
+{% extends 'administrator/base.html' %}
+{% block content %}
+<nav class="breadcrumb">
+    <a href="{% url 'admin_home' %}">Home</a>
+    <span>›</span>
+    <span style="color: #0b1220; font-weight: 600;">Manage Reports</span>
+</nav>
+
+<h2 class="header">Manage Reports</h2>
+<p class="muted">Update status and manage reported issues.</p>
+
+<!-- Status Filter -->
+<div style="background:#ffffff;border-radius:12px;padding:20px;box-shadow:0 2px 4px rgba(0,0,0,0.1);margin:20px 0;">
+    <form method="get" style="display:flex;gap:15px;align-items:end;">
+        <div>
+            <label style="display:block;font-size:12px;color:#4b5563;margin-bottom:4px;font-weight:500;">Filter by Status</label>
+            <select name="status" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;">
+                <option value="">All Statuses</option>
+                {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" style="background:#3b82f6;color:#ffffff;border:none;padding:8px 16px;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;">Filter</button>
+        <a href="{% url 'admin_manage_reports' %}" style="background:#6b7280;color:#ffffff;border:none;padding:8px 16px;border-radius:6px;font-size:14px;font-weight:500;text-decoration:none;display:inline-block;">Clear</a>
+    </form>
+</div>
+
+<!-- Reports Management Table -->
+<div style="background:#ffffff;border-radius:12px;box-shadow:0 2px 4px rgba(0,0,0,0.1);overflow:hidden;">
+    {% if reports %}
+    <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+            <thead style="background:#f9fafb;">
+                <tr>
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">ID</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">Title</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">Category</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">Severity</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">Current Status</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">Reporter</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">Date</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for report in reports %}
+                <tr style="border-bottom:1px solid #f3f4f6;">
+                    <td style="padding:12px 16px;font-size:12px;color:#6b7280;font-weight:500;">#{{ report.id }}</td>
+                    <td style="padding:12px 16px;">
+                        <div style="font-size:14px;font-weight:500;color:#1f2937;margin-bottom:2px;">{{ report.title|truncatechars:40 }}</div>
+                        <div style="font-size:12px;color:#6b7280;">{{ report.description|truncatechars:60 }}</div>
+                    </td>
+                    <td style="padding:12px 16px;">
+                        <span style="font-size:12px;padding:4px 8px;border-radius:12px;background:#e0e7ff;color:#3730a3;font-weight:500;">{{ report.get_category_display }}</span>
+                    </td>
+                    <td style="padding:12px 16px;">
+                        <span style="font-size:11px;padding:4px 8px;border-radius:12px;font-weight:500;
+                            {% if report.severity == 'low' %}background:#d1fae5;color:#065f46;
+                            {% elif report.severity == 'medium' %}background:#fef3c7;color:#92400e;
+                            {% elif report.severity == 'high' %}background:#fed7d7;color:#c53030;
+                            {% else %}background:#fecaca;color:#991b1b;{% endif %}">
+                            {{ report.get_severity_display }}
+                        </span>
+                    </td>
+                    <td style="padding:12px 16px;">
+                        <span id="status-{{ report.id }}" style="font-size:11px;padding:4px 8px;border-radius:12px;font-weight:500;
+                            {% if report.status == 'pending' %}background:#fef3c7;color:#92400e;
+                            {% elif report.status == 'in_progress' %}background:#dbeafe;color:#1e40af;
+                            {% elif report.status == 'resolved' %}background:#d1fae5;color:#065f46;
+                            {% else %}background:#f3f4f6;color:#374151;{% endif %}">
+                            {{ report.get_status_display }}
+                        </span>
+                    </td>
+                    <td style="padding:12px 16px;">
+                        {% if report.reporter %}
+                        <div style="font-size:12px;color:#1f2937;font-weight:500;">{{ report.reporter.username }}</div>
+                        {% else %}
+                        <span style="font-size:12px;color:#6b7280;">Anonymous</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:12px 16px;">
+                        <div style="font-size:12px;color:#1f2937;">{{ report.created_at|date:"M d, Y" }}</div>
+                        <div style="font-size:11px;color:#6b7280;">{{ report.created_at|time:"H:i" }}</div>
+                    </td>
+                    <td style="padding:12px 16px;">
+                        <div style="display:flex;gap:8px;">
+                            <a href="{% url 'admin_report_detail' report.id %}" style="background:#3b82f6;color:#ffffff;padding:4px 8px;border-radius:4px;text-decoration:none;font-size:11px;font-weight:500;">View</a>
+                            <button onclick="showStatusModal({{ report.id }}, '{{ report.status }}', '{{ report.title|escapejs }}')" style="background:#10b981;color:#ffffff;padding:4px 8px;border-radius:4px;border:none;font-size:11px;font-weight:500;cursor:pointer;">Update</button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="padding:40px;text-align:center;">
+        <div style="font-size:48px;margin-bottom:16px;">📋</div>
+        <h3 style="margin:0 0 8px 0;color:#1f2937;font-size:18px;">No Reports Found</h3>
+        <p style="margin:0;color:#6b7280;font-size:14px;">Try adjusting your filter criteria.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Status Update Modal -->
+<div id="statusModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:#ffffff;border-radius:12px;padding:24px;max-width:400px;width:90%;box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+        <h3 style="margin:0 0 16px 0;color:#1f2937;font-size:18px;font-weight:600;">Update Report Status</h3>
+        <p id="modalReportTitle" style="margin:0 0 20px 0;color:#4b5563;font-size:14px;"></p>
+        
+        <form id="statusUpdateForm">
+            {% csrf_token %}
+            <input type="hidden" id="modalReportId" name="report_id">
+            <div style="margin-bottom:16px;">
+                <label style="display:block;font-size:12px;color:#4b5563;margin-bottom:4px;font-weight:500;">New Status</label>
+                <select id="modalStatus" name="status" style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;">
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+                <button type="button" onclick="closeStatusModal()" style="background:#6b7280;color:#ffffff;border:none;padding:8px 16px;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;">Cancel</button>
+                <button type="submit" style="background:#3b82f6;color:#ffffff;border:none;padding:8px 16px;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;">Update Status</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function showStatusModal(reportId, currentStatus, reportTitle) {
+    document.getElementById('modalReportId').value = reportId;
+    document.getElementById('modalStatus').value = currentStatus;
+    document.getElementById('modalReportTitle').textContent = reportTitle;
+    document.getElementById('statusModal').style.display = 'flex';
+}
+
+function closeStatusModal() {
+    document.getElementById('statusModal').style.display = 'none';
+}
+
+// Handle status update form submission
+document.getElementById('statusUpdateForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const reportId = formData.get('report_id');
+    const newStatus = formData.get('status');
+    
+    fetch('{% url "admin_manage_reports" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update the status badge in the table
+            const statusElement = document.getElementById('status-' + reportId);
+            if (statusElement) {
+                statusElement.textContent = data.new_status_display;
+                // Update the styling based on new status
+                statusElement.className = 'status-badge';
+                if (newStatus === 'pending') {
+                    statusElement.style.background = '#fef3c7';
+                    statusElement.style.color = '#92400e';
+                } else if (newStatus === 'in_progress') {
+                    statusElement.style.background = '#dbeafe';
+                    statusElement.style.color = '#1e40af';
+                } else if (newStatus === 'resolved') {
+                    statusElement.style.background = '#d1fae5';
+                    statusElement.style.color = '#065f46';
+                } else {
+                    statusElement.style.background = '#f3f4f6';
+                    statusElement.style.color = '#374151';
+                }
+            }
+            
+            // Close modal and show success message
+            closeStatusModal();
+            alert('Status updated successfully!');
+        } else {
+            alert('Error updating status: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while updating the status.');
+    });
+});
+
+// Close modal when clicking outside
+document.getElementById('statusModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeStatusModal();
+    }
+});
+</script>
+{% endblock %}
+
+
+

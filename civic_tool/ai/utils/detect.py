@@ -1,0 +1,185 @@
+from ultralytics import YOLO
+from PIL import Image
+import os
+import json
+import cv2
+
+
+# Get app root
+APP_ROOT = os.path.dirname(os.path.abspath(__file__))
+
+def detect_pothole_severity(
+    file_path: str,
+    model_path: str,
+    output_folder: str = "output",
+    conf_threshold: float = 0.5
+):
+    """
+    Detect potholes and classify severity from a single image or video file.
+    For videos, averages values per frame for standardized severity.
+    """
+    os.makedirs(output_folder, exist_ok=True)
+    model = YOLO(model_path)
+
+    # Area-based thresholds (pixels)
+    low_area_threshold = 3000
+    medium_area_threshold = 20000
+    high_area_threshold = 30000
+
+    # Box density thresholds (boxes per frame)
+    low_density_threshold = 1
+    medium_density_threshold = 3
+    high_density_threshold = 6
+
+    def get_box_density_score(avg_boxes_per_frame):
+        if avg_boxes_per_frame <= low_density_threshold:
+            return 1
+        elif avg_boxes_per_frame <= medium_density_threshold:
+            return 2
+        elif avg_boxes_per_frame <= high_density_threshold:
+            return 3
+        else:
+            return 4
+
+    def get_area_score(avg_box_area):
+        if avg_box_area < low_area_threshold:
+            return 1
+        elif avg_box_area < medium_area_threshold:
+            return 2
+        elif avg_box_area < high_area_threshold:
+            return 3
+        else:
+            return 4
+
+    def classify_severity(box_score, area_score):
+        # Weighted average: more weight to box density
+        combined = (0.6 * box_score) + (0.4 * area_score)
+        if combined < 1.5:
+            return "Low"
+        elif combined < 2.5:
+            return "Medium"
+        elif combined < 3.5:
+            return "High"
+        else:
+            return "Very High"
+
+    filename = os.path.basename(file_path)
+    ext = filename.lower().split('.')[-1]
+
+    # ---------------------------
+    # IMAGE PROCESSING
+    # ---------------------------
+    if ext in ['jpg', 'jpeg', 'png']:
+        results = model.predict(file_path, conf=conf_threshold, verbose=False)
+
+        for r in results:
+            im_array = r.plot()
+            im = Image.fromarray(im_array[..., ::-1])
+            save_path = os.path.join(output_folder, filename)
+            im.save(save_path)
+
+            total_boxes = len(r.boxes)
+            total_area = 0.0
+
+            for box in r.boxes:
+                conf = float(box.conf[0])
+                if conf < conf_threshold:
+                    continue
+                _, _, w, h = [float(x) for x in box.xywh[0]]
+                total_area += w * h
+
+            avg_area = total_area / total_boxes if total_boxes > 0 else 0
+            box_score = get_box_density_score(total_boxes)  # since it's one image
+            area_score = get_area_score(avg_area)
+            severity = classify_severity(box_score, area_score)
+
+            summary = {
+                "type": "image",
+                "file": filename,
+                "boxes": total_boxes,
+                "avg_area": round(float(avg_area), 2),
+                "severity": severity,
+                "annotated_output": os.path.abspath(save_path)
+            }
+
+        json_path = os.path.join(output_folder, f"{os.path.splitext(filename)[0]}_results.json")
+        with open(json_path, "w") as f:
+            json.dump(summary, f, indent=4)
+
+        return summary
+
+    # ---------------------------
+    # VIDEO PROCESSING
+    # ---------------------------
+    elif ext in ['mp4', 'avi', 'mov', 'mkv']:
+        cap = cv2.VideoCapture(file_path)
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+        out_path = os.path.join(output_folder, f"annotated_{filename}")
+        out = cv2.VideoWriter(out_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
+
+        total_boxes = 0
+        total_area = 0.0
+        frame_count = 0
+
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            frame_count += 1
+            temp_path = os.path.join(output_folder, "temp_frame.jpg")
+            cv2.imwrite(temp_path, frame)
+
+            results = model.predict(temp_path, conf=conf_threshold, verbose=False)
+
+            for r in results:
+                annotated_frame = r.plot()
+                out.write(annotated_frame)
+
+                for box in r.boxes:
+                    conf = float(box.conf[0])
+                    if conf < conf_threshold:
+                        continue
+                    _, _, w, h = [float(x) for x in box.xywh[0]]
+                    total_boxes += 1
+                    total_area += w * h
+
+        cap.release()
+        out.release()
+
+        # Use actual number of processed frames (in case total_frames isn't reliable)
+        avg_boxes_per_frame = total_boxes / frame_count if frame_count > 0 else 0
+        avg_box_area = total_area / total_boxes if total_boxes > 0 else 0
+
+        box_score = get_box_density_score(avg_boxes_per_frame)
+        area_score = get_area_score(avg_box_area)
+        severity = classify_severity(box_score, area_score)
+
+        summary = {
+            "type": "video",
+            "file": filename,
+            "frames": frame_count,
+            "boxes": total_boxes,
+            "avg_boxes_per_frame": round(avg_boxes_per_frame, 2),
+            "avg_area": round(avg_box_area, 2),
+            "severity": severity,
+            "annotated_output": os.path.abspath(out_path)
+        }
+
+        json_path = os.path.join(output_folder, f"{os.path.splitext(filename)[0]}_results.json")
+        with open(json_path, "w") as f:
+            json.dump(summary, f, indent=4)
+
+        return summary
+
+    else:
+        raise ValueError(f"Unsupported file type: {ext}")
+
+
+
+
+

@@ -1,0 +1,125 @@
+{% extends 'administrator/base.html' %}
+{% block content %}
+<nav class="breadcrumb">
+    <a href="{% url 'admin_home' %}">Home</a>
+    <span>›</span>
+    <span style="color: #0b1220; font-weight: 600;">Manage Account</span>
+</nav>
+
+<h2 class="header">Manage Account</h2>
+<p class="muted">Update your account information and preferences.</p>
+
+{% if success_message %}
+<div style="background:#d1fae5;color:#065f46;border:1px solid #a7f3d0;padding:12px 16px;border-radius:8px;margin:20px 0;font-size:14px;">
+    ✅ {{ success_message }}
+</div>
+{% endif %}
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:20px 0;">
+    <!-- Account Information -->
+    <div style="background:#ffffff;border-radius:12px;padding:24px;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+        <h3 style="margin:0 0 20px 0;color:#1f2937;font-size:18px;font-weight:600;">Account Information</h3>
+        
+        <form method="post">
+            {% csrf_token %}
+            <div style="margin-bottom:16px;">
+                <label style="display:block;font-size:12px;color:#4b5563;margin-bottom:4px;font-weight:500;">Username</label>
+                <input type="text" value="{{ user.username }}" disabled style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;background:#f9fafb;color:#6b7280;">
+                <small style="color:#6b7280;font-size:11px;">Username cannot be changed</small>
+            </div>
+            
+            <div style="margin-bottom:16px;">
+                <label style="display:block;font-size:12px;color:#4b5563;margin-bottom:4px;font-weight:500;">First Name</label>
+                <input type="text" name="first_name" value="{{ user.first_name }}" style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;">
+            </div>
+            
+            <div style="margin-bottom:16px;">
+                <label style="display:block;font-size:12px;color:#4b5563;margin-bottom:4px;font-weight:500;">Last Name</label>
+                <input type="text" name="last_name" value="{{ user.last_name }}" style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;">
+            </div>
+            
+            <div style="margin-bottom:20px;">
+                <label style="display:block;font-size:12px;color:#4b5563;margin-bottom:4px;font-weight:500;">Email Address</label>
+                <input type="email" name="email" value="{{ user.email }}" style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;">
+            </div>
+            
+            <button type="submit" style="background:#3b82f6;color:#ffffff;border:none;padding:10px 20px;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;">Update Account</button>
+        </form>
+    </div>
+
+    <!-- Account Details -->
+    <div style="background:#ffffff;border-radius:12px;padding:24px;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+        <h3 style="margin:0 0 20px 0;color:#1f2937;font-size:18px;font-weight:600;">Account Details</h3>
+        
+        <div style="margin-bottom:16px;">
+            <div style="font-size:12px;color:#6b7280;margin-bottom:4px;">Account Type</div>
+            <div style="font-size:14px;color:#1f2937;font-weight:500;">Administrator</div>
+        </div>
+        
+        <div style="margin-bottom:16px;">
+            <div style="font-size:12px;color:#6b7280;margin-bottom:4px;">Member Since</div>
+            <div style="font-size:14px;color:#1f2937;font-weight:500;">{{ user.date_joined|date:"F d, Y" }}</div>
+        </div>
+        
+        <div style="margin-bottom:16px;">
+            <div style="font-size:12px;color:#6b7280;margin-bottom:4px;">Last Login</div>
+            <div style="font-size:14px;color:#1f2937;font-weight:500;">
+                {% if user.last_login %}
+                    {{ user.last_login|date:"F d, Y H:i" }}
+                {% else %}
+                    Never
+                {% endif %}
+            </div>
+        </div>
+        
+        <div style="margin-bottom:16px;">
+            <div style="font-size:12px;color:#6b7280;margin-bottom:4px;">Account Status</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:14px;color:#1f2937;font-weight:500;">Active</span>
+                <span style="font-size:12px;padding:2px 6px;border-radius:12px;background:#d1fae5;color:#065f46;">✓ Verified</span>
+            </div>
+        </div>
+        
+        <div style="margin-bottom:20px;">
+            <div style="font-size:12px;color:#6b7280;margin-bottom:4px;">User ID</div>
+            <div style="font-size:14px;color:#1f2937;font-weight:500;font-family:monospace;">{{ user.id }}</div>
+        </div>
+        
+        <div style="padding-top:16px;border-top:1px solid #e5e7eb;">
+            <h4 style="margin:0 0 12px 0;color:#374151;font-size:14px;font-weight:600;">Quick Actions</h4>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <a href="{% url 'admin_dashboard' %}" style="background:#f3f4f6;color:#374151;padding:8px 12px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:500;text-align:center;">← Back to Dashboard</a>
+                <a href="{% url 'admin_view_reported_issues' %}" style="background:#3b82f6;color:#ffffff;padding:8px 12px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:500;text-align:center;">View Reports</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Security Information -->
+<div style="background:#ffffff;border-radius:12px;padding:24px;box-shadow:0 2px 4px rgba(0,0,0,0.1);margin:20px 0;">
+    <h3 style="margin:0 0 16px 0;color:#1f2937;font-size:18px;font-weight:600;">Security Information</h3>
+    
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;">
+        <div style="padding:16px;background:#f9fafb;border-radius:8px;">
+            <div style="font-size:12px;color:#6b7280;margin-bottom:4px;">Password</div>
+            <div style="font-size:14px;color:#1f2937;font-weight:500;">••••••••</div>
+            <small style="color:#6b7280;font-size:11px;">Password is encrypted and secure</small>
+        </div>
+        
+        <div style="padding:16px;background:#f9fafb;border-radius:8px;">
+            <div style="font-size:12px;color:#6b7280;margin-bottom:4px;">Two-Factor Authentication</div>
+            <div style="font-size:14px;color:#1f2937;font-weight:500;">Not Enabled</div>
+            <small style="color:#6b7280;font-size:11px;">Contact system administrator</small>
+        </div>
+        
+        <div style="padding:16px;background:#f9fafb;border-radius:8px;">
+            <div style="font-size:12px;color:#6b7280;margin-bottom:4px;">Session Timeout</div>
+            <div style="font-size:14px;color:#1f2937;font-weight:500;">24 Hours</div>
+            <small style="color:#6b7280;font-size:11px;">Automatic logout after inactivity</small>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+

@@ -1,0 +1,10 @@
+{
+    "type": "video",
+    "file": "tmpvz0g_g6p.mp4",
+    "frames": 97,
+    "boxes": 31,
+    "avg_boxes_per_frame": 0.32,
+    "avg_area": 82359.98,
+    "severity": "Medium",
+    "annotated_output": "C:\\Users\\onaha\\OneDrive\\Desktop\\civic ai\\civic_tool\\media\\issues\\ann_videos\\annotated_tmpvz0g_g6p.mp4"
+}

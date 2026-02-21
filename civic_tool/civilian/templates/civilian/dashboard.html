@@ -1,0 +1,162 @@
+{% extends 'civilian/base.html' %}
+{% block content %}
+<nav class="breadcrumb">
+    <a href="#">Home</a>
+    <span>›</span>
+    <span style="color: #0b1220; font-weight: 600;">Dashboard</span>
+    </nav>
+<h2 class="header">Civilian Dashboard</h2>
+<p class="muted">Welcome to your dashboard. Here's an overview of your reported issues.</p>
+
+{% if request.user.is_authenticated %}
+<!-- Statistics Cards -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;margin-top:20px;">
+    <!-- Total Reports Card -->
+    <div style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#ffffff;border-radius:12px;padding:20px;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <div style="font-size:14px;opacity:0.9;margin-bottom:4px;">Total Reports</div>
+                <div style="font-size:32px;font-weight:700;">{{ total_reports }}</div>
+            </div>
+            <div style="font-size:32px;opacity:0.8;">📊</div>
+        </div>
+    </div>
+
+    <!-- Recent Reports Card -->
+    <div style="background:linear-gradient(135deg,#10b981,#059669);color:#ffffff;border-radius:12px;padding:20px;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <div style="font-size:14px;opacity:0.9;margin-bottom:4px;">This Week</div>
+                <div style="font-size:32px;font-weight:700;">{{ recent_reports }}</div>
+            </div>
+            <div style="font-size:32px;opacity:0.8;">📈</div>
+        </div>
+    </div>
+
+    <!-- Media Reports Card -->
+    <div style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#ffffff;border-radius:12px;padding:20px;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <div style="font-size:14px;opacity:0.9;margin-bottom:4px;">With Media</div>
+                <div style="font-size:32px;font-weight:700;">{{ reports_with_media }}</div>
+            </div>
+            <div style="font-size:32px;opacity:0.8;">📷</div>
+        </div>
+    </div>
+</div>
+
+<!-- Status Breakdown -->
+<div style="margin-top:24px;">
+    <h3 style="font-size:18px;font-weight:600;color:#111827;margin-bottom:16px;">Reports by Status</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
+        {% for key, stat in status_stats.items %}
+        <div style="background:#ffffff;border-radius:10px;padding:16px;border:1px solid #e5e7eb;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <div style="font-size:14px;font-weight:500;color:#374151;">
+                    {% if key == 'pending' %}⏳ {{ stat.name }}
+                    {% elif key == 'in_progress' %}🔄 {{ stat.name }}
+                    {% elif key == 'resolved' %}✅ {{ stat.name }}
+                    {% elif key == 'closed' %}🔒 {{ stat.name }}
+                    {% else %}{{ stat.name }}{% endif %}
+                </div>
+                <div style="font-size:20px;font-weight:700;color:#111827;">{{ stat.count }}</div>
+            </div>
+            <div style="height:4px;background:#f3f4f6;border-radius:2px;overflow:hidden;">
+                {% if total_reports > 0 %}
+                <div style="height:100%;background:{% if key == 'pending' %}#f59e0b{% elif key == 'in_progress' %}#3b82f6{% elif key == 'resolved' %}#10b981{% elif key == 'closed' %}#6b7280{% else %}#8b5cf6{% endif %};width:{% widthratio stat.count total_reports 100 %}%;"></div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Category Breakdown -->
+<div style="margin-top:24px;">
+    <h3 style="font-size:18px;font-weight:600;color:#111827;margin-bottom:16px;">Reports by Category</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
+        {% for key, stat in category_stats.items %}
+        <div style="background:#ffffff;border-radius:10px;padding:16px;border:1px solid #e5e7eb;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <div style="font-size:14px;font-weight:500;color:#374151;">{{ stat.name }}</div>
+                <div style="font-size:20px;font-weight:700;color:#111827;">{{ stat.count }}</div>
+            </div>
+            <div style="height:4px;background:#f3f4f6;border-radius:2px;overflow:hidden;">
+                {% if total_reports > 0 %}
+                <div style="height:100%;background:{% if key == 'pothole' %}#ef4444{% elif key == 'waste' %}#10b981{% elif key == 'streetlight' %}#f59e0b{% elif key == 'water' %}#3b82f6{% else %}#8b5cf6{% endif %};width:{% widthratio stat.count total_reports 100 %}%;"></div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div style="margin-top:24px;">
+    <h3 style="font-size:18px;font-weight:600;color:#111827;margin-bottom:16px;">Recent Activity</h3>
+    {% if latest_reports %}
+    <div style="background:#ffffff;border-radius:10px;border:1px solid #e5e7eb;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        {% for report in latest_reports %}
+        <div style="padding:16px;border-bottom:1px solid #f3f4f6;{% if forloop.last %}border-bottom:none;{% endif %}">
+            <div style="display:flex;justify-content:space-between;align-items:start;gap:12px;">
+                <div style="flex:1;">
+                    <div style="font-size:14px;font-weight:500;color:#111827;margin-bottom:4px;">{{ report.title }}</div>
+                    <div style="font-size:12px;color:#6b7280;">{{ report.get_category_display }} • {{ report.location|truncatechars:40 }}</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    {% if report.image %}
+                    <span style="color:#10b981;font-size:12px;">📷</span>
+                    {% elif report.video %}
+                    <span style="color:#ef4444;font-size:12px;">🎥</span>
+                    {% endif %}
+                    {% if report.status == 'pending' %}
+                        <span style="background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:8px;font-size:10px;font-weight:500;">⏳</span>
+                    {% elif report.status == 'in_progress' %}
+                        <span style="background:#dbeafe;color:#1e40af;padding:2px 6px;border-radius:8px;font-size:10px;font-weight:500;">🔄</span>
+                    {% elif report.status == 'resolved' %}
+                        <span style="background:#d1fae5;color:#065f46;padding:2px 6px;border-radius:8px;font-size:10px;font-weight:500;">✅</span>
+                    {% elif report.status == 'closed' %}
+                        <span style="background:#f3f4f6;color:#374151;padding:2px 6px;border-radius:8px;font-size:10px;font-weight:500;">🔒</span>
+                    {% endif %}
+                    <div style="font-size:12px;color:#9ca3af;">{{ report.created_at|date:"M d" }}</div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="background:#ffffff;border-radius:10px;border:1px solid #e5e7eb;padding:24px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <div style="font-size:48px;margin-bottom:12px;">📝</div>
+        <div style="font-size:14px;color:#6b7280;">No reports yet. Start by reporting your first issue!</div>
+        <a href="{% url 'civilian_report_issue' %}" style="display:inline-block;margin-top:12px;background:#3b82f6;color:#ffffff;text-decoration:none;padding:8px 16px;border-radius:6px;font-size:14px;font-weight:500;">Report Issue</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Quick Actions -->
+<div style="margin-top:24px;">
+    <h3 style="font-size:18px;font-weight:600;color:#111827;margin-bottom:16px;">Quick Actions</h3>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <a href="{% url 'civilian_report_issue' %}" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:500;display:flex;align-items:center;gap:8px;">
+            ➕ Report New Issue
+        </a>
+        <a href="{% url 'civilian_view_reports' %}" style="background:linear-gradient(135deg,#10b981,#059669);color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:500;display:flex;align-items:center;gap:8px;">
+            📋 View All Reports
+        </a>
+        <a href="{% url 'civilian_manage_account' %}" style="background:linear-gradient(135deg,#6b7280,#4b5563);color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:500;display:flex;align-items:center;gap:8px;">
+            ⚙️ Manage Account
+        </a>
+    </div>
+</div>
+
+{% else %}
+<!-- Not authenticated state -->
+<div style="background:#ffffff;border-radius:12px;border:1px solid #e5e7eb;padding:32px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.1);margin-top:20px;">
+    <div style="font-size:48px;margin-bottom:16px;">🔐</div>
+    <h3 style="font-size:20px;font-weight:600;color:#111827;margin-bottom:8px;">Please Sign In</h3>
+    <p style="font-size:14px;color:#6b7280;margin-bottom:20px;">Sign in to view your dashboard and report analysis.</p>
+    <a href="{% url 'login' %}" style="background:#3b82f6;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:500;">Sign In</a>
+</div>
+{% endif %}
+{% endblock %}
+

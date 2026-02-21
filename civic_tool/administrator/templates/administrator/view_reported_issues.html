@@ -1,0 +1,173 @@
+{% extends 'administrator/base.html' %}
+{% block content %}
+<nav class="breadcrumb">
+    <a href="{% url 'admin_home' %}">Home</a>
+    <span>›</span>
+    <span style="color: #0b1220; font-weight: 600;">View Reported Issues</span>
+</nav>
+
+<h2 class="header">View Reported Issues</h2>
+<p class="muted">Browse and search through all reported issues. Total: {{ total_reports }} reports</p>
+
+<!-- Filters -->
+<div style="background:#ffffff;border-radius:12px;padding:20px;box-shadow:0 2px 4px rgba(0,0,0,0.1);margin:20px 0;">
+    <form method="get" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;align-items:end;">
+        <!-- Search -->
+        <div>
+            <label style="display:block;font-size:12px;color:#4b5563;margin-bottom:4px;font-weight:500;">Search</label>
+            <input type="text" name="search" value="{{ current_search }}" placeholder="Search reports..." style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;">
+        </div>
+        
+        <!-- Status Filter -->
+        <div>
+            <label style="display:block;font-size:12px;color:#4b5563;margin-bottom:4px;font-weight:500;">Status</label>
+            <select name="status" style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;">
+                <option value="">All Statuses</option>
+                {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <!-- Category Filter -->
+        <div>
+            <label style="display:block;font-size:12px;color:#4b5563;margin-bottom:4px;font-weight:500;">Category</label>
+            <select name="category" style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;">
+                <option value="">All Categories</option>
+                {% for value, label in category_choices %}
+                <option value="{{ value }}" {% if current_category == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <!-- Date From -->
+        <div>
+            <label style="display:block;font-size:12px;color:#4b5563;margin-bottom:4px;font-weight:500;">From Date</label>
+            <input type="date" name="date_from" value="{{ current_date_from }}" style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;">
+        </div>
+        
+        <!-- Date To -->
+        <div>
+            <label style="display:block;font-size:12px;color:#4b5563;margin-bottom:4px;font-weight:500;">To Date</label>
+            <input type="date" name="date_to" value="{{ current_date_to }}" style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;">
+        </div>
+        
+        <!-- Filter Buttons -->
+        <div style="display:flex;gap:8px;">
+            <button type="submit" style="background:#3b82f6;color:#ffffff;border:none;padding:8px 16px;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;">Filter</button>
+            <a href="{% url 'admin_view_reported_issues' %}" style="background:#6b7280;color:#ffffff;border:none;padding:8px 16px;border-radius:6px;font-size:14px;font-weight:500;text-decoration:none;display:inline-block;">Clear</a>
+        </div>
+    </form>
+</div>
+
+<!-- Reports Table -->
+<div style="background:#ffffff;border-radius:12px;box-shadow:0 2px 4px rgba(0,0,0,0.1);overflow:hidden;">
+    {% if reports %}
+    <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+            <thead style="background:#f9fafb;">
+                <tr>
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">ID</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">Title</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">Category</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">Severity</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">Status</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">Reporter</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">Location</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">Date</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">Media</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for report in reports %}
+                <tr style="border-bottom:1px solid #f3f4f6;">
+                    <td style="padding:12px 16px;font-size:12px;color:#6b7280;font-weight:500;">#{{ report.id }}</td>
+                    <td style="padding:12px 16px;">
+                        <div style="font-size:14px;font-weight:500;color:#1f2937;margin-bottom:2px;">{{ report.title|truncatechars:50 }}</div>
+                        <div style="font-size:12px;color:#6b7280;">{{ report.description|truncatechars:80 }}</div>
+                    </td>
+                    <td style="padding:12px 16px;">
+                        <span style="font-size:12px;padding:4px 8px;border-radius:12px;background:#e0e7ff;color:#3730a3;font-weight:500;">{{ report.get_category_display }}</span>
+                    </td>
+                    <td style="padding:12px 16px;">
+                        <span style="font-size:11px;padding:4px 8px;border-radius:12px;font-weight:500;
+                            {% if report.severity == 'low' %}background:#d1fae5;color:#065f46;
+                            {% elif report.severity == 'medium' %}background:#fef3c7;color:#92400e;
+                            {% elif report.severity == 'high' %}background:#fed7d7;color:#c53030;
+                            {% else %}background:#fecaca;color:#991b1b;{% endif %}">
+                            {{ report.get_severity_display }}
+                        </span>
+                    </td>
+                    <td style="padding:12px 16px;">
+                        <span style="font-size:11px;padding:4px 8px;border-radius:12px;font-weight:500;
+                            {% if report.status == 'pending' %}background:#fef3c7;color:#92400e;
+                            {% elif report.status == 'in_progress' %}background:#dbeafe;color:#1e40af;
+                            {% elif report.status == 'resolved' %}background:#d1fae5;color:#065f46;
+                            {% else %}background:#f3f4f6;color:#374151;{% endif %}">
+                            {{ report.get_status_display }}
+                        </span>
+                    </td>
+                    <td style="padding:12px 16px;">
+                        {% if report.reporter %}
+                        <div style="font-size:12px;color:#1f2937;font-weight:500;">{{ report.reporter.username }}</div>
+                        <div style="font-size:11px;color:#6b7280;">{{ report.reporter.email }}</div>
+                        {% else %}
+                        <span style="font-size:12px;color:#6b7280;">Anonymous</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:12px 16px;font-size:12px;color:#4b5563;">{{ report.location|truncatechars:30 }}</td>
+                    <td style="padding:12px 16px;">
+                        <div style="font-size:12px;color:#1f2937;">{{ report.created_at|date:"M d, Y" }}</div>
+                        <div style="font-size:11px;color:#6b7280;">{{ report.created_at|time:"H:i" }}</div>
+                    </td>
+                    <td style="padding:12px 16px;text-align:center;">
+                        {% if report.image or report.video %}
+                        <span style="font-size:12px;color:#10b981;">📷</span>
+                        {% else %}
+                        <span style="font-size:12px;color:#6b7280;">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:12px 16px;">
+                        <a href="{% url 'admin_report_detail' report.id %}" style="background:#3b82f6;color:#ffffff;padding:4px 8px;border-radius:4px;text-decoration:none;font-size:11px;font-weight:500;">View</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div style="padding:16px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:12px;color:#6b7280;">
+            Showing {{ reports|length }} of {{ total_reports }} reports
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+            {% if has_previous %}
+            <a href="?page={{ previous_page }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_date_from %}&date_from={{ current_date_from }}{% endif %}{% if current_date_to %}&date_to={{ current_date_to }}{% endif %}" 
+               style="background:#f3f4f6;color:#374151;padding:6px 12px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:500;">Previous</a>
+            {% endif %}
+            
+            <span style="font-size:12px;color:#6b7280;">Page {{ current_page }} of {{ total_pages }}</span>
+            
+            {% if has_next %}
+            <a href="?page={{ next_page }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_date_from %}&date_from={{ current_date_from }}{% endif %}{% if current_date_to %}&date_to={{ current_date_to }}{% endif %}" 
+               style="background:#f3f4f6;color:#374151;padding:6px 12px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:500;">Next</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div style="padding:40px;text-align:center;">
+        <div style="font-size:48px;margin-bottom:16px;">📋</div>
+        <h3 style="margin:0 0 8px 0;color:#1f2937;font-size:18px;">No Reports Found</h3>
+        <p style="margin:0;color:#6b7280;font-size:14px;">Try adjusting your filters or search criteria.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+
+
